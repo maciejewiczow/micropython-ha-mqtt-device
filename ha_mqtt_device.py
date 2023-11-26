@@ -1,5 +1,28 @@
+from zmq import device
 import ujson as json
 from lib.mqtt_as import MQTTClient
+import network
+from ubinascii import hexlify
+import machine
+
+class Device(dict):
+    def __init__(self, name: bytes, model: bytes, manufacturer: bytes):
+        wlan = network.WLAN(network.STA_IF)
+        wlan.active(True)
+        macaddr = hexlify(wlan.config('mac'), ':')
+
+        super().__init__(
+            name=name,
+            model=model,
+            manufacturer=manufacturer,
+            identifiers=hexlify(machine.unique_id()),
+            connections= [
+                [
+                    "mac",
+                    macaddr
+                ]
+            ],
+        )
 
 class BaseEntity(object):
     def __init__(
@@ -8,9 +31,10 @@ class BaseEntity(object):
         name: bytes,
         component: bytes,
         object_id: bytes,
-        node_id,
-        discovery_prefix: bytes,
-        extra_conf
+        node_id = None,
+        discovery_prefix = b'homeassistant',
+        device = None,
+        extra_conf = None
     ):
         self.mqtt = mqtt
 
@@ -27,6 +51,9 @@ class BaseEntity(object):
             "stat_t": b'~/state',
             "~": base_topic
         }
+
+        if device:
+            self.config['device'] = device
 
         if extra_conf:
             self.config.update(extra_conf)
@@ -49,18 +76,20 @@ class BinarySensor(BaseEntity):
         mqtt: MQTTClient,
         name,
         object_id,
+        device = None,
         node_id=None,
         discovery_prefix=b'homeassistant',
         extra_conf=None
     ):
         super().__init__(
-            mqtt,
-            name,
-            b'binary_sensor',
-            object_id,
-            node_id,
-            discovery_prefix,
-            extra_conf
+            mqtt=mqtt,
+            name=name,
+            component=b'binary_sensor',
+            device=device,
+            object_id=object_id,
+            node_id=node_id,
+            discovery_prefix = discovery_prefix,
+            extra_conf=extra_conf
         )
 
     async def publish_state(self, state):
@@ -83,15 +112,15 @@ class Sensor(BaseEntity):
         extra_conf=None
     ):
         super().__init__(
-            mqtt,
-            name,
-            b'sensor',
-            object_id,
-            node_id,
-            discovery_prefix,
-            extra_conf
+            mqtt=mqtt,
+            name=name,
+            component=b'sensor',
+            device=device,
+            object_id=object_id,
+            node_id=node_id,
+            discovery_prefix=discovery_prefix,
+            extra_conf=extra_conf,
         )
-
 
 class EntityGroup(object):
     def __init__(self, mqtt: MQTTClient, node_id, discovery_prefix=b'homeassistant', extra_conf=None):
