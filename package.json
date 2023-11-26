@@ -1,0 +1,13 @@
+{
+    "urls": [
+        [
+            "ha_mqtt_device.py",
+            "github:maciejewiczow/micropython-ha-mqtt-device/ha_mqtt_device.py"
+        ],
+        [
+            "lib/mqtt_as.py",
+            "github:maciejewiczow/micropython-ha-mqtt-device/lib/mqtt_as.py"
+        ]
+    ],
+    "version": "0.1"
+}
