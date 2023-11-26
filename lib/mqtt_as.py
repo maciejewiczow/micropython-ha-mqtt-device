@@ -564,9 +564,11 @@ class MQTTClient(MQTT_base):
 
     async def wifi_connect(self, quick=False):
         s = self._sta_if
+
+        if s.isconnected():  # 1st attempt, already connected.
+            return
+
         if ESP8266:
-            if s.isconnected():  # 1st attempt, already connected.
-                return
             s.active(True)
             s.connect()  # ESP8266 remembers connection.
             for _ in range(60):
@@ -613,6 +615,7 @@ class MQTTClient(MQTT_base):
 
         if not s.isconnected():  # Timed out
             raise OSError("Wi-Fi connect timed out")
+
         if not quick:  # Skip on first connection only if power saving
             # Ensure connection stays up for a few secs.
             self.dprint("Checking WiFi integrity.")
