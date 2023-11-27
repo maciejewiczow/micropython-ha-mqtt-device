@@ -78,32 +78,6 @@ class MsgQueue:
         self._ri = (self._ri + 1) % self._size
         return r
 
-
-config = {
-    "client_id": hexlify(unique_id()),
-    "server": None,
-    "port": 0,
-    "user": "",
-    "password": "",
-    "keepalive": 60,
-    "ping_interval": 0,
-    "ssl": False,
-    "ssl_params": {},
-    "response_time": 10,
-    "clean_init": True,
-    "clean": True,
-    "max_repubs": 4,
-    "will": None,
-    "subs_cb": lambda *_: None,
-    "wifi_coro": noop,
-    "connect_coro": noop,
-    "ssid": None,
-    "wifi_pw": None,
-    "queue_len": 0,
-    "gateway" : False,
-}
-
-
 class MQTTException(Exception):
     pass
 
@@ -126,7 +100,26 @@ class MQTT_base:
     REPUB_COUNT = 0  # TEST
     DEBUG = False
 
-    def __init__(self, config):
+    def __init__(self, **kwargs):
+        config = {
+            "client_id": hexlify(unique_id()),
+            "keepalive": 60,
+            "ping_interval": 0,
+            "ssl": False,
+            "ssl_params": {},
+            "response_time": 10,
+            "clean_init": True,
+            "clean": True,
+            "max_repubs": 4,
+            "will": None,
+            "subs_cb": lambda *_: None,
+            "wifi_coro": noop,
+            "connect_coro": noop,
+            "queue_len": 0,
+            "gateway" : False,
+        }
+
+        config.update(kwargs)
         self._events = config["queue_len"] > 0
         # MQTT config
         self._client_id = config["client_id"]
