@@ -1,4 +1,3 @@
-from zmq import device
 import ujson as json
 from lib.mqtt_as import MQTTClient
 import network
