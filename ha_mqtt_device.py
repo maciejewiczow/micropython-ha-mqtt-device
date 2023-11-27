@@ -10,18 +10,18 @@ class Device(dict):
         wlan.active(True)
         macaddr = hexlify(wlan.config('mac'), ':')
 
-        super().__init__(
-            name=name,
-            model=model,
-            manufacturer=manufacturer,
-            identifiers=hexlify(machine.unique_id()),
-            connections= [
+        super().__init__({
+            'name': name,
+            'model': model,
+            'manufacturer': manufacturer,
+            'identifiers': hexlify(machine.unique_id()),
+            'connections':  [
                 [
                     "mac",
                     macaddr
                 ]
             ],
-        )
+        })
 
 class BaseEntity(object):
     def __init__(
