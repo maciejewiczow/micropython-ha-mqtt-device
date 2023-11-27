@@ -57,7 +57,8 @@ class BaseEntity(object):
         if extra_conf:
             self.config.update(extra_conf)
 
-        _ = self.mqtt.publish(self.config_topic, bytes(json.dumps(self.config), 'utf-8'), True, 1)
+    async def init_mqtt(self):
+        await self.mqtt.publish(self.config_topic, bytes(json.dumps(self.config), 'utf-8'), True, 1)
 
     async def remove_entity(self):
         await self.mqtt.publish(self.config_topic, b'', qos=1)
@@ -106,6 +107,7 @@ class Sensor(BaseEntity):
         mqtt: MQTTClient,
         name,
         object_id,
+        device,
         node_id=None,
         discovery_prefix=b'homeassistant',
         extra_conf=None
@@ -120,47 +122,3 @@ class Sensor(BaseEntity):
             discovery_prefix=discovery_prefix,
             extra_conf=extra_conf,
         )
-
-class EntityGroup(object):
-    def __init__(self, mqtt: MQTTClient, node_id, discovery_prefix=b'homeassistant', extra_conf=None):
-        self.mqtt = mqtt
-        self.node_id = node_id
-        self.discovery_prefix = discovery_prefix
-        # Group wide extra conf, gets passed to sensors
-        self.extra_conf = extra_conf
-        # Read state_topic from config if provided
-        if "state_topic" in extra_conf:
-            self.state_topic = extra_conf["state_topic"]
-        else:
-            self.state_topic = discovery_prefix + b'/sensor/' + node_id + b'/state'
-            extra_conf["state_topic"] = self.state_topic
-        self.entities = []
-
-    def _update_extra_conf(self, extra_conf):
-        if "value_template" not in extra_conf:
-            raise Exception("Groupped sensors need value_template to be set.")
-
-        extra_conf.update(self.extra_conf)
-
-    def create_binary_sensor(self, name, object_id, extra_conf):
-        self._update_extra_conf(extra_conf)
-        bs = BinarySensor(self.mqtt, name, object_id, self.node_id,
-                self.discovery_prefix, extra_conf)
-        self.entities.append(bs)
-        return bs
-
-    def create_sensor(self, name, object_id, extra_conf):
-        self._update_extra_conf(extra_conf)
-        s = Sensor(self.mqtt, name, object_id, self.node_id,
-                self.discovery_prefix, extra_conf)
-        self.entities.append(s)
-        return s
-
-    async def publish_state(self, state):
-        await self.mqtt.publish(self.state_topic, bytes(json.dumps(state), 'utf-8'))
-
-    async def remove_group(self):
-        for e in self.entities:
-            await e.remove_entity()
-
-
