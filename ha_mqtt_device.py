@@ -1,5 +1,5 @@
 import ujson as json
-from lib.mqtt_as import MQTTClient
+from .lib.mqtt_as import MQTTClient
 import network
 from ubinascii import hexlify
 import machine
