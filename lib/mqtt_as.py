@@ -101,67 +101,48 @@ class MQTT_base:
     DEBUG = False
 
     def __init__(self, **kwargs):
-        config = {
-            "client_id": hexlify(unique_id()),
-            "keepalive": 60,
-            "ping_interval": 0,
-            "ssl": False,
-            "ssl_params": {},
-            "response_time": 10,
-            "clean_init": True,
-            "clean": True,
-            "max_repubs": 4,
-            "will": None,
-            "subs_cb": lambda *_: None,
-            "wifi_coro": noop,
-            "connect_coro": noop,
-            "queue_len": 0,
-            "gateway" : False,
-        }
-
-        config.update(kwargs)
-        self._events = config["queue_len"] > 0
+        self._events = kwargs["queue_len"] > 0
         # MQTT config
-        self._client_id = config["client_id"]
-        self._user = config["user"]
-        self._pswd = config["password"]
-        self._keepalive = config["keepalive"]
+        self._client_id = kwargs["client_id"]
+        self._user = kwargs["user"]
+        self._pswd = kwargs["password"]
+        self._keepalive = kwargs["keepalive"]
         if self._keepalive >= 65536:
             raise ValueError("invalid keepalive time")
-        self._response_time = config["response_time"] * 1000  # Repub if no PUBACK received (ms).
-        self._max_repubs = config["max_repubs"]
-        self._clean_init = config["clean_init"]  # clean_session state on first connection
-        self._clean = config["clean"]  # clean_session state on reconnect
-        will = config["will"]
+        self._response_time = kwargs["response_time"] * 1000  # Repub if no PUBACK received (ms).
+        self._max_repubs = kwargs["max_repubs"]
+        self._clean_init = kwargs["clean_init"]  # clean_session state on first connection
+        self._clean = kwargs["clean"]  # clean_session state on reconnect
+        will = kwargs["will"]
         if will is None:
             self._lw_topic = False
         else:
             self.set_last_will(*will)
         # WiFi config
-        self._ssid = config["ssid"]  # Required for ESP32 / Pyboard D. Optional ESP8266
-        self._wifi_pw = config["wifi_pw"]
-        self._ssl = config["ssl"]
-        self._ssl_params = config["ssl_params"]
+        self._ssid = kwargs["ssid"]  # Required for ESP32 / Pyboard D. Optional ESP8266
+        self._wifi_pw = kwargs["wifi_pw"]
+        self._ssl = kwargs["ssl"]
+        self._ssl_params = kwargs["ssl_params"]
         # Callbacks and coros
         if self._events:
             self.up = asyncio.Event()
             self.down = asyncio.Event()
-            self.queue = MsgQueue(config["queue_len"])
+            self.queue = MsgQueue(kwargs["queue_len"])
         else:  # Callbacks
-            self._cb = config["subs_cb"]
-            self._wifi_handler = config["wifi_coro"]
-            self._connect_handler = config["connect_coro"]
+            self._cb = kwargs["subs_cb"]
+            self._wifi_handler = kwargs["wifi_coro"]
+            self._connect_handler = kwargs["connect_coro"]
         # Network
-        self.port = config["port"]
+        self.port = kwargs["port"]
         if self.port == 0:
             self.port = 8883 if self._ssl else 1883
-        self.server = config["server"]
+        self.server = kwargs["server"]
         if self.server is None:
             raise ValueError("no server specified.")
         self._sock = None
         self._sta_if = network.WLAN(network.STA_IF)
         self._sta_if.active(True)
-        if config["gateway"]:  # Called from gateway (hence ESP32).
+        if kwargs["gateway"]:  # Called from gateway (hence ESP32).
             import aioespnow  # Set up ESPNOW
             while not (sta := self._sta_if).active():
                 time.sleep(0.1)
@@ -540,8 +521,28 @@ class MQTT_base:
 
 
 class MQTTClient(MQTT_base):
-    def __init__(self, config):
-        super().__init__(config)
+    def __init__(self, **kwargs):
+        config = {
+            "client_id": hexlify(unique_id()),
+            "keepalive": 60,
+            "ping_interval": 0,
+            "ssl": False,
+            "ssl_params": {},
+            "response_time": 10,
+            "clean_init": True,
+            "clean": True,
+            "max_repubs": 4,
+            "will": None,
+            "subs_cb": lambda *_: None,
+            "wifi_coro": noop,
+            "connect_coro": noop,
+            "queue_len": 0,
+            "gateway" : False,
+        }
+
+        config.update(kwargs)
+
+        super().__init__(**config)
         self._isconnected = False  # Current connection state
         keepalive = 1000 * self._keepalive  # ms
         self._ping_interval = keepalive // 4 if keepalive else 20000
